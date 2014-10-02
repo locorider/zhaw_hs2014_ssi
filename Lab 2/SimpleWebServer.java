@@ -48,13 +48,21 @@ public class SimpleWebServer {
 
 	// The directory that contains the web resources
 
-	private static final String WEBROOT = "data"; 
+	private static final String WEBROOT = "data";
+
+	private static final File FILE_WEBROOT = new File(WEBROOT);
+
+	private static final String ABSOLUTE_WEBROOT_PATH = FILE_WEBROOT.getAbsolutePath();
 
 
 
 	// The upload directory
 
 	private static String UPLOAD_DIR = "upload";
+
+	private static final File FILE_UPLOAD_DIR = new File(WEBROOT + "/" + UPLOAD_DIR);
+
+	private static final String ABSOLUTE_UPLOAD_PATH = FILE_UPLOAD_DIR.getAbsolutePath();
 
 
 
@@ -146,77 +154,81 @@ public class SimpleWebServer {
 
 		// Used to write data to the client
 
-		OutputStreamWriter osw =                            
-
-			new OutputStreamWriter (s.getOutputStream());
+		OutputStreamWriter osw = new OutputStreamWriter (s.getOutputStream());
 
 		
 
-		// Parse the HTTP request
+		try {
 
-		String command = null;                             
+			// Parse the HTTP request
 
-		String pathname = null;
+			String command = null;                             
 
-		if(null != request && !request.isEmpty()) {
+			String pathname = null;
 
-			String[] tokens = request.split(" ");
+			if(null != request && !request.isEmpty()) {
 
-			int tokenLength = tokens.length;
+				String[] tokens = request.split(" ");
 
-			if(tokenLength > 0) {
+				int tokenLength = tokens.length;
 
-				command = tokens[0];
+				if(tokenLength > 0) {
 
-				if(tokenLength > 1) {
+					command = tokens[0];
 
-					pathname = tokens[1];
+					if(tokenLength > 1) {
 
-					pathname = pathname.replaceAll("\n", "");
+						pathname = tokens[1];
+
+						pathname = pathname.replaceAll("\n", "");
+
+					}
+
+				} else {
+
+					command = request;
 
 				}
 
-			} else {
-
-				command = request;
-
 			}
 
+
+
+			/* If the request is a GET, try to respond with the file
+
+			   the user is requesting. If it's a PUT, store the file. */
+
+			if(null == command || command.isEmpty() || null == pathname || pathname.isEmpty()) {
+
+				osw.write(STATUS_400);
+
+			} else if (command.equals("GET")) {
+
+				serveFile (osw,pathname);                   
+
+			} else if (command.equals("PUT")) {
+
+				storeFile(br,osw,pathname);                   
+
+			} else {                                         
+
+				/* If the request is neither GET nor PUT, return an error saying 
+
+				   this server does not implement the requested command */
+
+				osw.write (STATUS_501);
+
+			} 
+
+		} catch (Throwable e) {
+
+			e.printStackTrace();
+
+		} finally {
+
+			osw.close();
+
 		}
-
-
-
-		/* If the request is a GET, try to respond with the file
-
-		   the user is requesting. If it's a PUT, store the file. */
-
-		if(null == command || command.isEmpty() || null == pathname || pathname.isEmpty()) {
-
-			osw.write(STATUS_400);
-
-		} else if (command.equals("GET")) {
-
-			serveFile (osw,pathname);                   
-
-		} else if (command.equals("PUT")) {
-
-			storeFile(br,osw,pathname);                   
-
-		} else {                                         
-
-			/* If the request is neither GET nor PUT, return an error saying 
-
-			   this server does not implement the requested command */
-
-			osw.write (STATUS_501);
-
-		}                                               
-
-
-
-		// Close the connection to the client
-
-		osw.close();                                    
 
 	}                                                   
 
@@ -260,17 +272,13 @@ public class SimpleWebServer {
 
 		pathname = WEBROOT + "/" + pathname;
 
-		File fileWebroot = new File(WEBROOT);
-
-		File file = new File(pathname);
-
 		if(checkPath(pathname)) {
 
 			// Try to open file specified by pathname
 
 			try {                                               
 
-				fr = new FileReader (file);                 
+				fr = new FileReader (pathname);                 
 
 				c = fr.read();                                  
 
@@ -320,7 +328,23 @@ public class SimpleWebServer {
 
 	private boolean checkPath(String pathname) {
 
-		file.getCanonicalPath().startsWith(fileWebroot.getCanonicalPath())
+		if(null != pathname) {
+
+			final File filePath = new File(pathname);
+
+			try {
+
+				String absolutePath = filePath.getCanonicalPath();
+
+				return absolutePath.startsWith(ABSOLUTE_WEBROOT_PATH);
+
+			} catch (IOException e) {
+
+				e.printStackTrace();
+
+			}
+
+		}
 
 		return false;
 
@@ -330,9 +354,7 @@ public class SimpleWebServer {
 
 	/* storeFile is used to store a resource */
 
-	private void storeFile(BufferedReader br, OutputStreamWriter osw, 
-
-			String pathname) throws IOException {
+	private void storeFile(BufferedReader br, OutputStreamWriter osw, String pathname) throws IOException {
 
 		FileWriter fw = null;
 
@@ -364,9 +386,9 @@ public class SimpleWebServer {
 
 		File filePathname = new File(pathname);
 
-		File fileWebroot = new File(WEBROOT + "/" + UPLOAD_DIR);
+		final String absoluteUploadPath = filePathname.getCanonicalPath();
 
-		if(filePathname.getCanonicalPath().startsWith(fileWebroot.getCanonicalPath())) {
+		if(absoluteUploadPath.startsWith(ABSOLUTE_UPLOAD_PATH)) {
 
 			// Try to write the file
 
