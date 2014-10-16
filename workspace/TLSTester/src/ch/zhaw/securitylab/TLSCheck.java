@@ -124,10 +124,10 @@ public class TLSCheck {
 
 	private boolean isCipherSecure(final String cipher) {
 		if(cipher.startsWith("TLS_RSA_WITH_AES_128") || cipher.startsWith("TLS_ECDHE_RSA_WITH_AES_256") || cipher.startsWith("TLS_ECDHE_RSA_WITH_AES_128")
-				|| cipher.startsWith("TLS_DHE_RSA_WITH_AES_256") || cipher.startsWith("TLS_DHE_RSA_WITH_AES_128")) {
+				|| cipher.startsWith("TLS_DHE_RSA_WITH_AES_256") || cipher.startsWith("TLS_DHE_RSA_WITH_AES_128") || cipher.equals("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA")) {
 			return true;
 		}
-		if((cipher.contains("128") || cipher.contains("256")) && !cipher.contains("_DES") && !cipher.contains("RC4") && !cipher.contains("MD5") && !cipher.contains("KRB5")) {
+		if((cipher.contains("_128_") || cipher.contains("_256_")) && !cipher.contains("_DES") && !cipher.contains("RC4") && !cipher.contains("MD5") && !cipher.contains("KRB5")) {
 			return true;
 		}
 		return false;
